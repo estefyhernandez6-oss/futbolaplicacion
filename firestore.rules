@@ -1,0 +1,127 @@
+rules_version = '2';
+
+// Reglas de Firestore para MultiSport / football aop.
+//
+// POR QUE EXISTE ESTE ARCHIVO
+// El proyecto no traia reglas. Si la base se creo en "modo produccion", la regla
+// por defecto es `allow read, write: if false` y Firestore RECHAZA todas las
+// escrituras. Como la app no escuchaba los fallos, el boton parecia no hacer nada
+// y la base quedaba vacia. Despliega este archivo con:
+//
+//     firebase deploy --only firestore:rules
+//
+// MODELO DE PERMISOS
+//   - Lectura publica: el hincha ve marcadores, tablas, noticias y publicidad sin
+//     iniciar sesion.
+//   - Escritura solo con sesion iniciada (Firebase Auth). El panel de admin y el de
+//     arbitraje exigen login en la app; estas reglas lo hacen cumplir en el servidor.
+//   - `usuarios/{uid}`: cada quien escribe su propio perfil; el rol solo lo cambia
+//     un admin.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- helpers ----------------------------------------------------------
+
+    function estaAutenticado() {
+      return request.auth != null;
+    }
+
+    function perfil() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    function tieneRol(rol) {
+      return estaAutenticado()
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+        && perfil().rol == rol;
+    }
+
+    function esAdmin() {
+      return tieneRol('admin');
+    }
+
+    function esArbitroOAdmin() {
+      return tieneRol('admin') || tieneRol('arbitro');
+    }
+
+    // ---- catalogo: campeonatos, equipos, jugadores ------------------------
+
+    match /campeonatos/{campeonatoId} {
+      allow read: if true;
+      allow create, update: if estaAutenticado();
+      allow delete: if esAdmin();
+    }
+
+    match /equipos_globales/{equipoId} {
+      allow read: if true;
+      // Un hincha puede auto-inscribir su equipo al registrarse (queda "Pendiente
+      // de Aprobacion"); aprobarlo o borrarlo es cosa del admin.
+      allow create, update: if estaAutenticado();
+      allow delete: if esAdmin();
+    }
+
+    match /jugadores_globales/{jugadorId} {
+      allow read: if true;
+      // El arbitro necesita escribir aqui para marcar `estaSuspendido` tras una roja.
+      allow create, update: if estaAutenticado();
+      allow delete: if esAdmin();
+    }
+
+    // ---- competencia: partidos, tablas, goleadores -------------------------
+
+    match /partidos_en_vivo/{partidoId} {
+      allow read: if true;
+      allow create, update: if estaAutenticado();
+      allow delete: if esAdmin();
+    }
+
+    match /tabla_posiciones/{filaId} {
+      allow read: if true;
+      allow write: if estaAutenticado();
+    }
+
+    match /goleadores/{filaId} {
+      allow read: if true;
+      allow write: if estaAutenticado();
+    }
+
+    // ---- contenido: noticias y publicidad ---------------------------------
+
+    match /noticias/{noticiaId} {
+      allow read: if true;
+      allow write: if estaAutenticado();
+    }
+
+    match /publicidades/{publicidadId} {
+      allow read: if true;
+      allow write: if estaAutenticado();
+    }
+
+    // ---- usuarios ---------------------------------------------------------
+
+    match /usuarios/{uid} {
+      // El login lee usuarios/{uid} para averiguar el rol, y el panel de admin
+      // lista el personal con acceso.
+      allow read: if estaAutenticado();
+
+      // Perfil propio al registrarse, sin poder auto-asignarse un rol.
+      allow create: if estaAutenticado()
+                    && request.auth.uid == uid
+                    && !('rol' in request.resource.data);
+
+      // Cada quien edita lo suyo mientras no toque su propio rol.
+      allow update: if estaAutenticado()
+                    && request.auth.uid == uid
+                    && request.resource.data.get('rol', '') == resource.data.get('rol', '');
+
+      // Alta y cambio de rol de arbitros/admins: solo un admin.
+      allow create, update, delete: if esAdmin();
+    }
+
+    // Todo lo no declarado arriba queda cerrado.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

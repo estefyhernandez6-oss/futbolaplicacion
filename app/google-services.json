@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "5096686996",
+    "project_id": "multisport-tournament-manager",
+    "storage_bucket": "multisport-tournament-manager.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:5096686996:android:d65c9f97c6ec3800f13b81",
+        "android_client_info": {
+          "package_name": "com.sofia.multisport"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJiz0x6kYGAlqA4Ll_gwcIuDrc_cTCw40"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

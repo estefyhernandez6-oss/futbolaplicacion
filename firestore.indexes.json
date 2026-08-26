@@ -1,0 +1,22 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "partidos_en_vivo",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "deporteId", "order": "ASCENDING" },
+        { "fieldPath": "estado", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "partidos_en_vivo",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "deporteId", "order": "ASCENDING" },
+        { "fieldPath": "estado", "order": "ASCENDING" },
+        { "fieldPath": "fechaHora", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
